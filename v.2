@@ -1,0 +1,174 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+API Key Management System
+
+A tool for managing API keys and securing them against attacks such as brute-force attacks and API key leakage.
+"""
+
+import click
+import hashlib
+import os
+import secrets
+import string
+from datetime import datetime, timedelta
+from functools import wraps
+
+import redis
+from flask import Flask, jsonify, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_sqlalchemy import SQLAlchemy
+
+
+# Initialize Flask application
+app = Flask(__name__)
+
+# Load configuration from environment variable
+app.config.from_envvar('APP_CONFIG')
+
+# Initialize SQLAlchemy database
+db = SQLAlchemy(app)
+
+# Initialize Redis cache
+cache = redis.Redis(host='localhost', port=6379)
+
+# Initialize rate limiter
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["500 per day", "50 per hour"]
+)
+
+
+# Database model for storing API keys
+class APIKey(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    key = db.Column(db.String(128), unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, name):
+        self.name = name
+        self.key = generate_api_key()
+
+    def __repr__(self):
+        return '<APIKey %r>' % self.name
+
+
+# Decorator function for checking API key validity
+def api_key_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        if not api_key:
+            return jsonify({'message': 'API key is missing'}), 401
+        elif not verify_api_key(api_key):
+            return jsonify({'message': 'API key is invalid'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+# Function for generating a new API key
+def generate_api_key():
+    key_length = 64
+    alphabet = string.ascii_letters + string.digits
+    while True:
+        key = ''.join(secrets.choice(alphabet) for _ in range(key_length))
+        if not APIKey.query.filter_by(key=key).first():
+            return key
+
+
+# Function for verifying the validity of an API key
+def verify_api_key(api_key):
+    if cache.get(api_key):
+        return True
+    else:
+        key = APIKey.query.filter_by(key=api_key).first()
+        if key:
+            cache.set(key.key, key.name)
+            return True
+        else:
+            return False
+
+
+# CLI command for adding a new API key
+@click.command()
+@click.option('--name', prompt=True, help='Name of the API key')
+def add_api_key(name):
+    api_key = APIKey(name)
+    db.session.add(api_key)
+    db.session.commit()
+    click.echo('API key added: {}'.format(api_key.key))
+
+
+# CLI command for removing an API key
+@click.command()
+@click.option('--api_key', prompt=True, help='API key to remove')
+def remove_api_key(api_key):
+    key = APIKey.query.filter_by(key=api_key).first()
+    if key:
+        db.session.delete(key)
+        db.session.commit()
+        click.echo('API key removed: {}'.format(api_key))
+    else:
+        click.echo('API key not found')
+
+
+# CLI command for listing all API keys
+@click.command()
+def list_api_keys():
+    api_keys = APIKey.query.all()
+    for key in api_keys:
+        click.echo('{}\t{}'.format(key.key, key
+        # Define the main function
+def main():
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='API Key Management System')
+    parser.add_argument('-u', '--url', required=True, help='Target API URL')
+    parser.add_argument('-o', '--output', required=True, help='Output file path')
+    args = parser.parse_args()
+
+    # Connect to the database
+    try:
+        db = Database()
+        db.connect()
+    except Exception as e:
+        print(f'Error connecting to the database: {e}')
+        return
+
+    # Initialize the API client
+    api = APIClient(args.url)
+
+    # Authenticate and get the API key
+    try:
+        api_key = api.authenticate()
+        print(f'Authenticated successfully, API key: {api_key}')
+    except Exception as e:
+        print(f'Error authenticating: {e}')
+        return
+
+    # Store the API key in the database
+    try:
+        db.store_api_key(api_key)
+        print(f'API key stored in the database successfully')
+    except Exception as e:
+        print(f'Error storing the API key: {e}')
+        return
+
+    # Write the API key to the output file
+    try:
+        with open(args.output, 'w') as f:
+            f.write(api_key)
+        print(f'API key written to the output file successfully')
+    except Exception as e:
+        print(f'Error writing to the output file: {e}')
+        return
+
+    # Close the database connection
+    db.close()
+
+# Call the main function
+if __name__ == '__main__':
+    main()
