@@ -1,0 +1,83 @@
+import hashlib
+import os
+import secrets
+import argparse
+import sqlite3
+
+from flask import Flask, jsonify, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Initialize Flask application
+app = Flask(__name__)
+
+# Initialize rate limiter
+limiter = Limiter(app, key_func=get_remote_address)
+
+# Initialize database connection
+conn = sqlite3.connect('api_keys.db')
+c = conn.cursor()
+
+# Create table to store API keys
+c.execute('''CREATE TABLE IF NOT EXISTS api_keys
+             (key text PRIMARY KEY, description text)''')
+conn.commit()
+
+# Set up command-line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('-u', '--url', help='Target API URL')
+parser.add_argument('-o', '--output', help='Output file path')
+args = parser.parse_args()
+
+# Define function to generate secure API keys
+def generate_api_key():
+    api_key = secrets.token_hex(16)
+    hash_object = hashlib.sha256(api_key.encode())
+    api_key_hash = hash_object.hexdigest()
+    return api_key_hash
+
+# Define function to add API key to database
+def add_api_key(api_key, description):
+    c.execute("INSERT INTO api_keys (key, description) VALUES (?, ?)", (api_key, description))
+    conn.commit()
+
+# Define function to retrieve API key from database
+def get_api_key(api_key):
+    c.execute("SELECT * FROM api_keys WHERE key = ?", (api_key,))
+    return c.fetchone()
+
+# Define API endpoint for generating and retrieving API keys
+@app.route('/api-key', methods=['POST', 'GET'])
+@limiter.limit('10/minute')
+def api_key():
+    if request.method == 'POST':
+        description = request.form.get('description')
+        api_key = generate_api_key()
+        add_api_key(api_key, description)
+        response = {
+            'api_key': api_key,
+            'description': description
+        }
+        return jsonify(response), 201
+    elif request.method == 'GET':
+        api_key = request.headers.get('X-API-Key')
+        if api_key:
+            api_key = api_key.strip()
+            key_data = get_api_key(api_key)
+            if key_data:
+                response = {
+                    'api_key': key_data[0],
+                    'description': key_data[1]
+                }
+                return jsonify(response), 200
+            else:
+                return jsonify({'error': 'Invalid API key'}), 401
+        else:
+            return jsonify({'error': 'API key missing'}), 401
+
+# Run Flask application if script is executed directly
+if __name__ == '__main__':
+    app.run()
+
+# Close database connection
+conn.close()
