@@ -74,4 +74,6 @@ def update_api_key():
     print("API key updated successfully.")
 
 def delete_api_key():
-    with open("api_keys.json", "r")
+    with open("api_keys.json", "r") as f:
+        api_keys = json.load(f)
+    for index, api_key
