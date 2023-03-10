@@ -1,0 +1,51 @@
+Instalación
+
+    Asegúrate de tener Python 3 instalado en tu sistema. Puedes verificarlo ejecutando el siguiente comando en tu terminal:
+
+css
+
+python3 --version
+
+Si no tienes Python 3 instalado, puedes descargarlo e instalarlo desde el sitio web oficial de Python: https://www.python.org/downloads/
+
+    Clona el repositorio de Portuno API Key Management System en tu máquina local:
+
+bash
+
+git clone https://github.com/tadash10/portuno-api-keys.git
+
+    Navega hasta el directorio portuno-api-keys:
+
+bash
+
+cd portuno-api-keys
+
+    Instala las dependencias del proyecto ejecutando el siguiente comando:
+
+pip3 install -r requirements.txt
+
+Uso
+
+    Ejecuta el archivo main.py en tu terminal para iniciar el sistema de gestión de claves API de Portuno:
+
+css
+
+python3 main.py
+
+    Se mostrará un menú con las opciones disponibles para administrar tus claves API. Utiliza las teclas numéricas para seleccionar la opción que desees y presiona Enter.
+
+    Si seleccionas la opción Crear clave API del menú, se te pedirá que ingreses un nombre para tu clave API. Una vez que lo hayas hecho, se generará una clave API aleatoria y se mostrará en la pantalla. Asegúrate de copiar y guardar esta clave API en un lugar seguro, ya que no se mostrará de nuevo.
+
+    Si seleccionas la opción Ver todas las claves API del menú, se mostrarán todas las claves API existentes en el sistema junto con sus nombres.
+
+    Si seleccionas la opción Ver detalles de la clave API del menú, se te pedirá que selecciones una clave API de la lista. Una vez que lo hayas hecho, se mostrará el nombre y el valor de la clave API seleccionada.
+
+    Si seleccionas la opción Actualizar clave API del menú, se te pedirá que selecciones una clave API de la lista y luego ingreses un nuevo nombre para la clave API. Una vez que lo hayas hecho, se actualizará el nombre de la clave API seleccionada.
+
+    Si seleccionas la opción Eliminar clave API del menú, se te pedirá que selecciones una clave API de la lista. Una vez que lo hayas hecho, se eliminará la clave API seleccionada.
+
+    Si seleccionas la opción Herramienta de traducción del menú, se te pedirá que ingreses un texto en el idioma de origen y el idioma de destino. Una vez que lo hayas hecho, se utilizará la API de traducción de Google Cloud para traducir el texto y mostrarlo en la pantalla.
+
+    Si seleccionas la opción Listar idiomas admitidos del menú, se mostrará una lista de los idiomas admitidos por la API de traducción de Google Cloud.
+
+    Si seleccionas la opción Salir del menú, se cerrará el sistema de gestión de claves API de Portuno.
